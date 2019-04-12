@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Caliz {
 
@@ -18,14 +19,15 @@ public class Caliz {
 		// TODO check args and maybe handle options beyond file to compile
 		// TODO handle exceptions and turn them into informative error messages
 		// TODO figure out how to handle output streams of various processes
-		Process script = executeAfterAot(args[0]);
-		script.waitFor();
-		System.out.println("Wohoo! " + script.exitValue());
+		ProcessBuilder script = ThreadLocalRandom.current().nextBoolean()
+				? executeAfterAot(args[0])
+				: executeWithJvm(args[0]);
+		script.start().waitFor();
 	}
 
-	private static Process executeAfterAot(String scriptFile) throws IOException, InterruptedException {
+	private static ProcessBuilder executeAfterAot(String scriptFile) throws IOException, InterruptedException {
 		Path scriptImage = createNativeImage(scriptFile);
-		return executeImage(scriptImage);
+		return prepareNativeExecution(scriptImage);
 	}
 
 	private static Path createNativeImage(String scriptFile) throws IOException, InterruptedException {
@@ -74,27 +76,25 @@ public class Caliz {
 		return image;
 	}
 
-	private static Process executeImage(Path scriptImage) throws IOException {
+	private static ProcessBuilder prepareNativeExecution(Path scriptImage) {
 		return new ProcessBuilder(scriptImage.toString())
-				.inheritIO()
-				.start();
+				.inheritIO();
 	}
 
 	/*
 	 * USE JVM
 	 */
 
-	private static Process executeWithJvm(String scriptFile) throws IOException {
+	private static ProcessBuilder executeWithJvm(String scriptFile) throws IOException {
 		Path scriptPath = createScriptPath(scriptFile);
-		return startProcess(scriptPath);
+		return prepareScriptExecution(scriptPath);
 	}
 
-	private static Process startProcess(Path scriptPath) throws IOException {
+	private static ProcessBuilder prepareScriptExecution(Path scriptPath) throws IOException {
 		// TODO make path to JVM executable configurable
 		// TODO make source level configurable
 		return new ProcessBuilder("/usr/bin/java11", "--source 11", scriptPath.toString())
-				.inheritIO()
-				.start();
+				.inheritIO();
 	}
 
 	/*
