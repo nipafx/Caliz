@@ -1,4 +1,4 @@
-// #! /usr/bin/java11 --source 11
+// #! /home/nipa/code/Caliz/build/caliz
 public class HelloScripts {
 
 	public static void main(String[] args) {
