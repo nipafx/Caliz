@@ -17,3 +17,15 @@ Three fixes:
  3. Graal AOT compilation
 
 I want to combine these into a wrapper around Graal AOT-compiled scripts.
+
+## Good to know
+
+### Script class names
+
+While the script file can have any name you want, the class it contains must be called `Script`.
+
+### Java 8
+
+Unfortunately, Graal currently only supports Java 8 (i.e. bytecode level 52), so neither the scripts nor `Caliz.java` can use newer language features or APIs.
+Sad.
+😭
