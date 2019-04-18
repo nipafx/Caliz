@@ -1,4 +1,4 @@
-// #! /home/nipa/code/Caliz/build/caliz
+// #! /home/nipa/code/Caliz/work/caliz
 import java.io.IOException;
 
 public class Script {

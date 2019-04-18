@@ -3,6 +3,7 @@ package org.codefx.caliz;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -17,10 +18,18 @@ import java.util.List;
 
 public class Caliz {
 
-	private static final Path IMAGES_DIR = Paths.get("images").toAbsolutePath();
-	private static final Path BUILD_DIR = Paths.get("build").toAbsolutePath();
+
+	// --- DEAR END USER, PLEASE CONFIGURE HERE
+
+	private static final Path WORK_DIR = Paths.get("/home/nipa/code/Caliz/work");
+
+	// --- DEAR END USER, HANDS OFF!
+
+	private static Path BUILD_DIR = WORK_DIR.resolve("build");
+	private static Path IMAGES_DIR = WORK_DIR.resolve("images");
 
 	public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException {
+		ensurePathsExist();
 		// TODO check args and maybe handle options beyond file to compile
 		// TODO handle exceptions and turn them into informative error messages
 		Path script = createPathToScript(args[0]);
@@ -31,13 +40,16 @@ public class Caliz {
 			executeScriptAndCreateImage(script, checksum);
 	}
 
+	private static void ensurePathsExist() throws IOException {
+		if (!Files.exists(WORK_DIR))
+			throw new FileNotFoundException("Caliz working directory must exist");
+		Files.createDirectories(IMAGES_DIR);
+		Files.createDirectories(BUILD_DIR);
+	}
+
 	/*
 	 * IMAGE CACHE
 	 */
-	private static boolean existsNativeImage(String checksum) throws IOException, NoSuchAlgorithmException {
-		Files.createDirectories(IMAGES_DIR);
-		return Files.exists(IMAGES_DIR.resolve(checksum));
-	}
 
 	private static String createChecksum(Path file) throws IOException, NoSuchAlgorithmException {
 		// it may seem desirable to never parse the file twice (once for checksum, once to create
@@ -68,6 +80,10 @@ public class Caliz {
 		for (byte aByte : bytes)
 			sb.append(Integer.toString((aByte & 0xff) + 0x100, 16).substring(1));
 		return sb.toString();
+	}
+
+	private static boolean existsNativeImage(String checksum) {
+		return Files.exists(IMAGES_DIR.resolve(checksum));
 	}
 
 	private static void executeImageFromCache(String checksum) throws IOException, InterruptedException {

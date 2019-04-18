@@ -1,9 +1,18 @@
-rm -rf build
-mkdir build
+#! /bin/bash
+set -e
 
-sed '0,/\/\//{s/\/\/ //}' src/org/codefx/caliz/Caliz.java > build/caliz
-chmod +x build/caliz
+rm -rf demo/tmp
+mkdir demo/tmp
+rm -f work/caliz
 
-sed '0,/\/\//{s/\/\/ //}' demo/HelloScripts.java > build/hello-scripts
-chmod +x build/hello-scripts
-build/hello-scripts
+mode=$1
+
+if [ "$mode" != "--native" ]
+then
+	sed '0,/\/\//{s/\/\/ //}' src/org/codefx/caliz/Caliz.java > work/caliz
+	chmod +x work/caliz
+fi
+
+sed '0,/\/\//{s/\/\/ //}' demo/src/HelloScripts.java > demo/tmp/hello-scripts
+chmod +x demo/tmp/hello-scripts
+demo/tmp/hello-scripts
