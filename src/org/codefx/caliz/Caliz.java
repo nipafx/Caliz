@@ -1,10 +1,11 @@
 // #! /usr/bin/java11 --source 11
 package org.codefx.caliz;
 
-import javax.tools.JavaCompiler;
-import javax.tools.ToolProvider;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,7 +23,6 @@ public class Caliz {
 	public static void main(String[] args) throws IOException, InterruptedException, NoSuchAlgorithmException {
 		// TODO check args and maybe handle options beyond file to compile
 		// TODO handle exceptions and turn them into informative error messages
-		// TODO figure out how to handle output streams of various processes
 		Path script = createPathToScript(args[0]);
 		String checksum = createChecksum(script);
 		if (existsNativeImage(checksum))
@@ -110,19 +110,14 @@ public class Caliz {
 		return compileToNativeImage(bytecode);
 	}
 
-	private static Path compileToBytecode(Path scriptPath) {
-		// TODO check whether Substrate VM contains a compiler
-		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-		// TODO evaluate return value (errors!)
-		compiler.run(
-				null,
-				System.out,
-				System.err,
+	private static Path compileToBytecode(Path scriptPath) throws IOException, InterruptedException {
+		Process javac = new ProcessBuilder(
+				"javac",
 				"-d", BUILD_DIR.toString(),
-				// TODO set bootstrap class path (ugh)
-				"-source", "8",
-				"-target", "8",
-				scriptPath.toString());
+				scriptPath.toString())
+				.start();
+		javac.waitFor();
+		// TODO: print output (standard or error?) if compilation failed (~> error handling)
 		// TODO find a better way to determine class file name (this breaks if script is in a package)
 		return BUILD_DIR.resolve(scriptPath.getFileName().toString().replace(".java", ".class"));
 	}
@@ -131,15 +126,34 @@ public class Caliz {
 		Path image = BUILD_DIR.resolve("script-image");
 		// TODO make path to `native image` configurable
 		// TODO consider creating the image in a sibling process that does not get killed (?)
-		new ProcessBuilder(
+		Process graalAot = new ProcessBuilder(
 				"/usr/bin/native-image",
 				"-cp", bytecode.getParent().toString(),
 				"Script",
 				image.toString())
-				.inheritIO()
-				.start()
-				.waitFor();
+				.start();
+		graalAot.waitFor();
+		// TODO: print output (standard or error?) if compilation failed (~> error handling)
 		return image;
+	}
+
+	private static String captureStandardOutput(Process process) throws IOException {
+		return captureOutput(process.getInputStream());
+	}
+
+	private static String captureErrorOutput(Process process) throws IOException {
+		return captureOutput(process.getErrorStream());
+	}
+
+	private static String captureOutput(InputStream output) throws IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(output));
+		StringBuilder builder = new StringBuilder();
+		String line;
+		while ((line = reader.readLine()) != null) {
+			builder.append(line);
+			builder.append(System.getProperty("line.separator"));
+		}
+		return builder.toString();
 	}
 
 	private static ProcessBuilder prepareNativeExecutionOfImage(Path scriptImage) {
